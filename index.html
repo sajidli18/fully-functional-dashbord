@@ -1,0 +1,1092 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AUTHENTIC DATA DASHBOARD by SAJID WORLD</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+        body { background: #0f1419; color: #e6edf3; padding: 1.5rem; min-height: 100vh; }
+        .app-wrapper { max-width: 1600px; margin: 0 auto; transition: transform 0.3s ease; }
+        
+        .header { background: linear-gradient(145deg, #1a2332, #0d1117); padding: 1.8rem 2.5rem; border-radius: 2rem; 
+                  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; 
+                  box-shadow: 0 8px 32px rgba(0,0,0,0.4); margin-bottom: 2rem; border: 1px solid #2d3748; }
+        .header h1 { font-weight: 700; font-size: 2rem; letter-spacing: -0.5px; display: flex; align-items: center; gap: 0.75rem; 
+                     background: linear-gradient(135deg, #60a5fa, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .header h1 i { font-size: 2.2rem; background: none; -webkit-text-fill-color: #60a5fa; }
+        .header-sub { font-size: 0.8rem; color: #94a3b8; margin-top: 0.2rem; -webkit-text-fill-color: #94a3b8; }
+        .upload-area { display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; }
+        .upload-btn-wrapper { position: relative; overflow: hidden; display: inline-block; }
+        .upload-btn-wrapper input[type=file] { position: absolute; left: 0; top: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
+        .btn { background: #2d3748; border: none; padding: 0.7rem 1.6rem; border-radius: 40px; color: white; font-weight: 500;
+              display: inline-flex; align-items: center; gap: 0.5rem; transition: 0.3s; cursor: pointer; border: 1px solid #4a5568; }
+        .btn-primary { background: linear-gradient(135deg, #2563eb, #7c3aed); border-color: #3b82f6; }
+        .btn-primary:hover { transform: scale(1.05); box-shadow: 0 4px 20px rgba(37,99,235,0.4); }
+        .btn-success { background: linear-gradient(135deg, #059669, #10b981); border-color: #34d399; }
+        .btn-success:hover { transform: scale(1.05); box-shadow: 0 4px 20px rgba(5,150,105,0.4); }
+        .btn-warning { background: linear-gradient(135deg, #d97706, #f59e0b); border-color: #fbbf24; }
+        .btn-warning:hover { transform: scale(1.05); box-shadow: 0 4px 20px rgba(217,119,6,0.4); }
+        .btn-danger { background: linear-gradient(135deg, #dc2626, #ef4444); border-color: #f87171; }
+        .btn-danger:hover { transform: scale(1.05); box-shadow: 0 4px 20px rgba(220,38,38,0.4); }
+        .btn-outline { background: transparent; border: 1px solid #4a5568; }
+        .btn-outline:hover { background: #1a2332; border-color: #60a5fa; }
+        .badge { background: #2563eb; padding: 0.3rem 1rem; border-radius: 40px; font-size: 0.75rem; font-weight: 600; }
+        
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1.2rem; margin-bottom: 1.5rem; }
+        .stat-card { background: #1a2332; padding: 1.2rem 1.8rem; border-radius: 1.5rem; border: 1px solid #2d3748; 
+                     transition: 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+        .stat-card:hover { transform: translateY(-3px); border-color: #3b82f6; box-shadow: 0 8px 24px rgba(37,99,235,0.15); }
+        .stat-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; color: #94a3b8; font-weight: 600; }
+        .stat-value { font-size: 1.8rem; font-weight: 700; color: #e6edf3; margin-top: 0.25rem; }
+        .stat-sub { font-size: 0.75rem; color: #94a3b8; }
+        
+        .dashboard-panels { display: grid; grid-template-columns: 2fr 1.2fr; gap: 1.5rem; margin-bottom: 1.5rem; }
+        @media (max-width: 1024px) { .dashboard-panels { grid-template-columns: 1fr; } }
+        
+        .panel { background: #1a2332; border-radius: 1.8rem; padding: 1.5rem 2rem; border: 1px solid #2d3748; 
+                 box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+        .panel-title { font-weight: 600; color: #e6edf3; font-size: 1.1rem; margin-bottom: 1.2rem; display: flex; align-items: center; gap: 0.5rem; }
+        .panel-title i { color: #60a5fa; }
+        .chart-container { position: relative; height: 250px; margin-top: 0.2rem; }
+        
+        .toolbar { display: flex; gap: 0.5rem; flex-wrap: wrap; margin: 1rem 0; padding: 1rem; background: #1a2332; border-radius: 1rem; border: 1px solid #2d3748; }
+        .toolbar .btn { font-size: 0.85rem; padding: 0.5rem 1.2rem; }
+        
+        .search-section { margin: 1.5rem 0 1rem 0; display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; position: relative; }
+        .search-box { flex: 1; min-width: 250px; background: #0d1117; border: 1px solid #2d3748; border-radius: 60px; 
+                      padding: 0.6rem 1.5rem; display: flex; align-items: center; gap: 0.5rem; transition: 0.3s; }
+        .search-box:focus-within { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.15); }
+        .search-box input { border: none; background: transparent; padding: 0.5rem 0; width: 100%; outline: none; 
+                            font-size: 0.95rem; color: #e6edf3; }
+        .search-box i { color: #94a3b8; }
+        
+        #searchInfo {
+            background: linear-gradient(145deg, #1a2332, #0d1117);
+            border-radius: 1rem;
+            padding: 1rem 1.5rem;
+            margin: 0.5rem 0 1rem 0;
+            border-left: 4px solid #2563eb;
+            animation: slideDown 0.3s ease-out;
+        }
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        #searchInfo .chip { background: #1a2332; padding: 0.2rem 0.8rem; border-radius: 20px; font-size: 0.7rem; border: 1px solid #2d3748; }
+        
+        #searchSuggestions {
+            background: #0d1117;
+            border: 1px solid #2d3748;
+            border-radius: 1rem;
+            padding: 0.5rem;
+            margin-top: 0.5rem;
+            position: absolute;
+            width: 100%;
+            z-index: 100;
+            max-height: 200px;
+            overflow-y: auto;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+            top: 100%;
+            display: none;
+        }
+        #searchSuggestions div { padding: 0.3rem 1rem; color: #e6edf3; font-size: 0.85rem; cursor: pointer; border-radius: 0.5rem; }
+        #searchSuggestions div:hover { background: #1a2332; }
+        #searchSuggestions code { color: #60a5fa; font-family: 'Courier New', monospace; }
+        
+        .quick-filter { transition: all 0.2s; }
+        .quick-filter:hover { background: #2563eb !important; border-color: #2563eb !important; transform: scale(1.05); }
+        
+        .table-responsive { overflow-x: auto; border-radius: 1.2rem; background: #0d1117; padding: 0.2rem 0; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        th { text-align: left; padding: 0.9rem 0.8rem; background: #1a2332; color: #e6edf3; font-weight: 600; 
+             border-bottom: 2px solid #2d3748; position: sticky; top: 0; z-index: 10; }
+        td { padding: 0.7rem 0.8rem; border-bottom: 1px solid #1a2332; color: #c9d1d9; }
+        tr:hover td { background: #1a2332; }
+        .empty-state { text-align: center; padding: 3rem 1rem; color: #94a3b8; }
+        .empty-state i { font-size: 3rem; margin-bottom: 0.5rem; color: #2d3748; }
+        
+        .footer-actions { display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1rem; flex-wrap: wrap; }
+        .chip { background: #1a2332; padding: 0.3rem 1rem; border-radius: 30px; font-size: 0.75rem; font-weight: 600; 
+               color: #60a5fa; border: 1px solid #2d3748; }
+        .flex-between { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
+        
+        .toast { position: fixed; bottom: 2rem; right: 2rem; background: #1a2332; color: white; padding: 1rem 2rem; 
+                 border-radius: 60px; box-shadow: 0 8px 32px rgba(0,0,0,0.5); font-weight: 500; display: flex; 
+                 align-items: center; gap: 0.8rem; transition: 0.25s; opacity: 0; transform: translateY(20px); 
+                 pointer-events: none; z-index: 999; border: 1px solid #2d3748; }
+        .toast.show { opacity: 1; transform: translateY(0); }
+        .toast i { color: #4ade80; }
+        
+        .pagination-controls { display: flex; justify-content: center; align-items: center; gap: 1rem; margin-top: 1rem; }
+        .pagination-controls button { padding: 0.4rem 1.2rem; }
+        #pageInfo { color: #94a3b8; font-size: 0.9rem; }
+        
+        .column-badge { display: inline-block; padding: 0.15rem 0.6rem; border-radius: 20px; font-size: 0.65rem; 
+                        font-weight: 600; margin-left: 0.3rem; }
+        .col-numeric { background: #1a3a3a; color: #4ade80; }
+        .col-categorical { background: #3a1a3a; color: #c084fc; }
+        .col-date { background: #1a2a4a; color: #60a5fa; }
+        
+        .analytics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+        .analytics-card { background: #1a2332; padding: 1rem 1.5rem; border-radius: 1rem; border: 1px solid #2d3748; }
+        .analytics-card h4 { color: #94a3b8; font-size: 0.8rem; text-transform: uppercase; margin-bottom: 0.5rem; }
+        .analytics-card .value { font-size: 1.5rem; font-weight: 600; }
+        
+        .insight-panel { background: #1a2332; border-radius: 1rem; padding: 1.5rem; margin: 1rem 0; border: 1px solid #2d3748; }
+        .insight-panel h3 { color: #60a5fa; margin-bottom: 1rem; }
+        .insight-item { background: #0d1117; padding: 0.5rem 1rem; border-radius: 0.5rem; margin: 0.3rem 0; }
+        
+        @media (max-width: 768px) {
+            .header { flex-direction: column; align-items: stretch; gap: 1rem; }
+            .upload-area { justify-content: center; }
+            .stats-grid { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+            .toolbar .btn { font-size: 0.7rem; padding: 0.3rem 0.8rem; }
+            body { padding: 0.5rem; }
+        }
+    </style>
+</head>
+<body>
+<div class="app-wrapper">
+    <!-- Header -->
+    <div class="header">
+        <div>
+            <h1><i class="fas fa-chart-line"></i> AUTHENTIC DATA DASHBOARD</h1>
+            <div class="header-sub">by SAJID WORLD • Universal Data Analysis Platform</div>
+        </div>
+        <div class="upload-area">
+            <span class="badge"><i class="fas fa-database"></i> CSV / Excel</span>
+            <div class="upload-btn-wrapper">
+                <button class="btn btn-primary"><i class="fas fa-cloud-upload-alt"></i> Upload Dataset</button>
+                <input type="file" id="csvUpload" accept=".csv,.xlsx" />
+            </div>
+            <button class="btn btn-outline" id="resetBtn"><i class="fas fa-undo-alt"></i> Reset</button>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid" id="statsGrid">
+        <div class="stat-card"><div class="stat-label"><i class="fas fa-table"></i> Total Records</div><div class="stat-value" id="totalRecords">0</div></div>
+        <div class="stat-card"><div class="stat-label"><i class="fas fa-columns"></i> Columns</div><div class="stat-value" id="colCount">0</div></div>
+        <div class="stat-card"><div class="stat-label"><i class="fas fa-bolt"></i> Dataset Type</div><div class="stat-value" id="datasetType">—</div><div class="stat-sub">auto-detected</div></div>
+        <div class="stat-card"><div class="stat-label"><i class="fas fa-chart-pie"></i> Categorical</div><div class="stat-value" id="catCount">0</div><div class="stat-sub">columns</div></div>
+        <div class="stat-card"><div class="stat-label"><i class="fas fa-chart-bar"></i> Numeric</div><div class="stat-value" id="numCount">0</div><div class="stat-sub">columns</div></div>
+    </div>
+
+    <!-- Analytics Grid -->
+    <div class="analytics-grid" id="analyticsGrid"></div>
+
+    <!-- Data Management Toolbar -->
+    <div class="toolbar">
+        <button class="btn btn-success" id="cleanDataBtn"><i class="fas fa-broom"></i> Clean Data</button>
+        <button class="btn btn-primary" id="edaBtn"><i class="fas fa-chart-line"></i> EDA Analysis</button>
+        <button class="btn btn-warning" id="aiInsightsBtn"><i class="fas fa-robot"></i> AI Insights</button>
+        <button class="btn btn-success" id="exportExcelBtn"><i class="fas fa-file-excel"></i> Export Excel</button>
+        <button class="btn btn-primary" id="exportPDFBtn"><i class="fas fa-file-pdf"></i> Export PDF</button>
+        <button class="btn btn-outline" id="zoomInBtn"><i class="fas fa-search-plus"></i> Zoom In</button>
+        <button class="btn btn-outline" id="zoomOutBtn"><i class="fas fa-search-minus"></i> Zoom Out</button>
+        <button class="btn btn-outline" id="zoomResetBtn"><i class="fas fa-expand"></i> Reset Zoom</button>
+        <button class="btn btn-outline" id="screenshotBtn"><i class="fas fa-camera"></i> Screenshot</button>
+    </div>
+
+    <!-- Clean Data Panel -->
+    <div id="cleanPanel" style="display:none;" class="insight-panel">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+            <h3><i class="fas fa-broom"></i> Data Cleaning Options</h3>
+            <button class="btn btn-outline" onclick="document.getElementById('cleanPanel').style.display='none'"><i class="fas fa-times"></i></button>
+        </div>
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:1rem;">
+            <label><input type="checkbox" id="removeDuplicates" checked> Remove Duplicates</label>
+            <label><input type="checkbox" id="removeEmpty" checked> Remove Empty Rows</label>
+            <label><input type="checkbox" id="fillMissing" checked> Fill Missing Values</label>
+            <label><input type="checkbox" id="removeOutliers" checked> Remove Outliers</label>
+        </div>
+        <button class="btn btn-success" id="applyCleanBtn" style="margin-top:1rem;"><i class="fas fa-check"></i> Apply Cleaning</button>
+    </div>
+
+    <!-- EDA Panel -->
+    <div id="edaPanel" style="display:none;" class="insight-panel">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+            <h3><i class="fas fa-chart-line"></i> Exploratory Data Analysis (EDA)</h3>
+            <button class="btn btn-outline" onclick="document.getElementById('edaPanel').style.display='none'"><i class="fas fa-times"></i></button>
+        </div>
+        <div id="edaContent"></div>
+    </div>
+
+    <!-- AI Insights Panel -->
+    <div id="aiPanel" style="display:none;" class="insight-panel">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+            <h3><i class="fas fa-robot"></i> AI-Generated Insights</h3>
+            <button class="btn btn-outline" onclick="document.getElementById('aiPanel').style.display='none'"><i class="fas fa-times"></i></button>
+        </div>
+        <div id="aiContent"></div>
+    </div>
+
+    <!-- Charts -->
+    <div class="dashboard-panels">
+        <div class="panel">
+            <div class="panel-title"><i class="fas fa-chart-bar"></i> <span id="chart1Title">Data Distribution</span></div>
+            <div class="chart-container"><canvas id="mainChart"></canvas></div>
+        </div>
+        <div class="panel">
+            <div class="panel-title"><i class="fas fa-chart-doughnut"></i> <span id="chart2Title">Category Breakdown</span></div>
+            <div class="chart-container"><canvas id="doughnutChart"></canvas></div>
+        </div>
+    </div>
+
+    <!-- Data Explorer -->
+    <div class="panel" style="margin-top: 0.2rem;">
+        <div class="flex-between">
+            <div class="panel-title" style="margin-bottom: 0;"><i class="fas fa-search"></i> Advanced Data Explorer</div>
+            <span class="chip" id="recordCount">0 records</span>
+        </div>
+        
+        <div class="search-section">
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" id="searchInput" placeholder="🔍 Search: column:value | >100 | <50 | contains 'text'" />
+                <span style="color:#94a3b8;font-size:0.7rem;">⌘K</span>
+            </div>
+            <button class="btn btn-primary" id="searchBtn"><i class="fas fa-arrow-right"></i> Search</button>
+            <button class="btn btn-outline" id="clearFilterBtn"><i class="fas fa-times"></i> Clear</button>
+            
+            <div id="searchSuggestions"></div>
+        </div>
+
+        <div id="searchInfo" style="display:none;">
+            <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:1rem;">
+                <div>
+                    <div style="color:#94a3b8; font-size:0.8rem; margin-bottom:0.3rem;">
+                        <i class="fas fa-info-circle"></i> Search Analysis
+                    </div>
+                    <div style="display:flex; flex-wrap:wrap; gap:0.5rem; align-items:center;">
+                        <span id="searchQueryDisplay" style="color:#e6edf3; font-weight:500;"></span>
+                        <span class="chip" id="searchTypeBadge">Text Search</span>
+                        <span class="chip" id="resultsCountBadge">0 results</span>
+                    </div>
+                </div>
+                <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+                    <span id="searchColumnsUsed" style="color:#94a3b8; font-size:0.8rem;"></span>
+                </div>
+            </div>
+        </div>
+
+        <div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin:0.5rem 0;">
+            <span style="color:#94a3b8;font-size:0.75rem;display:flex;align-items:center;">Quick Filters:</span>
+            <button class="btn btn-outline quick-filter" style="padding:0.2rem 0.8rem;font-size:0.75rem;" onclick="document.getElementById('searchInput').value='>100'; performSearch();">> 100</button>
+            <button class="btn btn-outline quick-filter" style="padding:0.2rem 0.8rem;font-size:0.75rem;" onclick="document.getElementById('searchInput').value='<50'; performSearch();">< 50</button>
+            <button class="btn btn-outline quick-filter" style="padding:0.2rem 0.8rem;font-size:0.75rem;" onclick="document.getElementById('searchInput').value='contains \'top\''; performSearch();">Contains "top"</button>
+            <button class="btn btn-outline quick-filter" style="padding:0.2rem 0.8rem;font-size:0.75rem;" onclick="document.getElementById('searchInput').value='between 10 and 100'; performSearch();">10-100</button>
+            <button class="btn btn-outline quick-filter" style="padding:0.2rem 0.8rem;font-size:0.75rem;" onclick="document.getElementById('searchInput').value='column:value'; performSearch();">Column:Value</button>
+        </div>
+
+        <div class="table-responsive" id="tableContainer">
+            <table id="dataTable">
+                <thead id="tableHead"></thead>
+                <tbody id="tableBody"><tr><td colspan="10" class="empty-state"><i class="fas fa-cloud-upload-alt"></i><br />Upload any CSV or Excel dataset to begin</td></tr></tbody>
+            </table>
+        </div>
+        
+        <div class="pagination-controls">
+            <button class="btn btn-outline" id="prevPageBtn"><i class="fas fa-chevron-left"></i> Previous</button>
+            <span id="pageInfo">Page 1 of 1</span>
+            <button class="btn btn-outline" id="nextPageBtn">Next <i class="fas fa-chevron-right"></i></button>
+        </div>
+        
+        <div class="footer-actions">
+            <button class="btn btn-danger" id="deleteSelectedBtn"><i class="fas fa-trash-alt"></i> Delete Selected</button>
+            <button class="btn btn-success" id="exportBtn"><i class="fas fa-download"></i> Export Data</button>
+        </div>
+    </div>
+</div>
+
+<div class="toast" id="toast"><i class="fas fa-check-circle"></i> <span id="toastMsg">Done</span></div>
+
+<script>
+    (function(){
+        let rawData = [];
+        let filteredData = [];
+        let headers = [];
+        let columnTypes = {};
+        let dataSummary = {};
+        let mainChart = null;
+        let doughnutChart = null;
+        let currentPage = 1;
+        const PAGE_SIZE = 10;
+        let totalPages = 1;
+        let zoomLevel = 1;
+
+        // DOM refs
+        const fileInput = document.getElementById('csvUpload');
+        const resetBtn = document.getElementById('resetBtn');
+        const searchInput = document.getElementById('searchInput');
+        const searchBtn = document.getElementById('searchBtn');
+        const clearFilterBtn = document.getElementById('clearFilterBtn');
+        const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
+        const exportBtn = document.getElementById('exportBtn');
+        const tableHead = document.getElementById('tableHead');
+        const tableBody = document.getElementById('tableBody');
+        const totalRecords = document.getElementById('totalRecords');
+        const colCount = document.getElementById('colCount');
+        const datasetType = document.getElementById('datasetType');
+        const catCount = document.getElementById('catCount');
+        const numCount = document.getElementById('numCount');
+        const recordCount = document.getElementById('recordCount');
+        const pageInfo = document.getElementById('pageInfo');
+        const prevPageBtn = document.getElementById('prevPageBtn');
+        const nextPageBtn = document.getElementById('nextPageBtn');
+        const chart1Title = document.getElementById('chart1Title');
+        const chart2Title = document.getElementById('chart2Title');
+        const analyticsGrid = document.getElementById('analyticsGrid');
+        const searchInfo = document.getElementById('searchInfo');
+        const searchQueryDisplay = document.getElementById('searchQueryDisplay');
+        const searchTypeBadge = document.getElementById('searchTypeBadge');
+        const resultsCountBadge = document.getElementById('resultsCountBadge');
+        const searchColumnsUsed = document.getElementById('searchColumnsUsed');
+        const searchSuggestions = document.getElementById('searchSuggestions');
+
+        const toast = document.getElementById('toast');
+        const toastMsg = document.getElementById('toastMsg');
+        let toastTimer = null;
+
+        function showToast(msg) {
+            toastMsg.innerText = msg;
+            toast.classList.add('show');
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        function detectDatasetType(data, types) {
+            if (!data || data.length === 0) return 'Unknown';
+            const sample = data[0];
+            const keys = Object.keys(sample);
+            const keyStr = keys.join(' ').toLowerCase();
+            
+            if (keyStr.includes('instrument') || keyStr.includes('product') || keyStr.includes('item')) return 'Product/Inventory';
+            else if (keyStr.includes('patient') || keyStr.includes('doctor') || keyStr.includes('diagnosis')) return 'Medical/Healthcare';
+            else if (keyStr.includes('land') || keyStr.includes('acre') || keyStr.includes('property')) return 'Land/Property';
+            else if (keyStr.includes('food') || keyStr.includes('recipe') || keyStr.includes('ingredient')) return 'Food/Recipe';
+            else if (keyStr.includes('sales') || keyStr.includes('revenue') || keyStr.includes('transaction')) return 'Sales/Finance';
+            else if (keyStr.includes('student') || keyStr.includes('course') || keyStr.includes('grade')) return 'Education';
+            else if (keyStr.includes('employee') || keyStr.includes('salary') || keyStr.includes('department')) return 'HR/Employee';
+            else if (keyStr.includes('movie') || keyStr.includes('film') || keyStr.includes('actor')) return 'Entertainment';
+            else return 'General Data';
+        }
+
+        function loadDataFromAPI(search = '', page = 1) {
+            const params = new URLSearchParams({ search: search, page: page, limit: PAGE_SIZE });
+            
+            fetch(`/api/data?${params}`)
+                .then(res => res.json())
+                .then(result => {
+                    if (result.data) {
+                        filteredData = result.data;
+                        headers = result.headers || [];
+                        columnTypes = result.columnTypes || {};
+                        dataSummary = result.summary || {};
+                        totalPages = result.totalPages || 1;
+                        currentPage = result.page || 1;
+                        
+                        updateDashboard(result.data, result.headers, result.stats);
+                        updateTable(result.data, result.headers);
+                        updatePagination(result.page, result.totalPages);
+                        updateAnalytics(result.data, result.headers, result.columnTypes);
+                        
+                        if (search) {
+                            resultsCountBadge.textContent = `${result.data.length} results found`;
+                            showSearchInfo(true);
+                        } else {
+                            showSearchInfo(false);
+                        }
+                    }
+                })
+                .catch(err => showToast('Error loading data: ' + err.message));
+        }
+
+        function updateDashboard(data, headersList, stats) {
+            if (!data || data.length === 0) {
+                totalRecords.textContent = '0';
+                colCount.textContent = '0';
+                datasetType.textContent = '—';
+                catCount.textContent = '0';
+                numCount.textContent = '0';
+                recordCount.textContent = '0 records';
+                return;
+            }
+
+            const types = columnTypes;
+            let numCols = 0, catCols = 0;
+            for (let key of Object.keys(types)) {
+                if (types[key]?.type === 'numeric') numCols++;
+                else if (types[key]?.type === 'categorical') catCols++;
+            }
+
+            totalRecords.textContent = data.length;
+            colCount.textContent = headersList.length;
+            datasetType.textContent = detectDatasetType(data, types);
+            catCount.textContent = catCols;
+            numCount.textContent = numCols;
+            recordCount.textContent = data.length + ' records';
+
+            updateCharts(data, headersList, types);
+        }
+
+        function updateTable(data, headersList) {
+            tableHead.innerHTML = '';
+            tableBody.innerHTML = '';
+            
+            if (!data || data.length === 0 || !headersList || headersList.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="10" class="empty-state"><i class="fas fa-inbox"></i><br />No data to display</td></tr>`;
+                return;
+            }
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<th style="width:30px;"><input type="checkbox" id="selectAllToggle"></th>`;
+            headersList.forEach(h => {
+                const type = columnTypes[h]?.type || 'unknown';
+                const badge = `<span class="column-badge col-${type}">${type}</span>`;
+                tr.innerHTML += `<th>${h} ${badge}</th>`;
+            });
+            tableHead.appendChild(tr);
+
+            data.forEach((row, idx) => {
+                const tr2 = document.createElement('tr');
+                tr2.dataset.rowIndex = idx;
+                const checkbox = `<td><input type="checkbox" class="rowCheckbox" data-idx="${idx}"></td>`;
+                const cells = headersList.map(h => `<td>${row[h] !== undefined && row[h] !== null ? row[h] : ''}</td>`).join('');
+                tr2.innerHTML = checkbox + cells;
+                tableBody.appendChild(tr2);
+            });
+
+            document.getElementById('selectAllToggle')?.addEventListener('change', function(e) {
+                document.querySelectorAll('.rowCheckbox').forEach(cb => cb.checked = e.target.checked);
+            });
+        }
+
+        function updateCharts(data, headersList, types) {
+            if (!data || data.length === 0) {
+                if (mainChart) { mainChart.destroy(); mainChart = null; }
+                if (doughnutChart) { doughnutChart.destroy(); doughnutChart = null; }
+                return;
+            }
+
+            const numericCols = Object.keys(types).filter(k => types[k]?.type === 'numeric');
+            const categoricalCols = Object.keys(types).filter(k => types[k]?.type === 'categorical');
+            
+            let chart1Labels = [], chart1Data = [], chart1Label = 'Distribution';
+            
+            if (categoricalCols.length > 0 && numericCols.length > 0) {
+                const catCol = categoricalCols[0];
+                const numCol = numericCols[0];
+                const map = new Map();
+                data.forEach(row => {
+                    const key = String(row[catCol] || 'unknown').trim();
+                    const val = parseFloat(row[numCol]) || 0;
+                    map.set(key, (map.get(key) || 0) + val);
+                });
+                const sorted = Array.from(map.entries()).sort((a, b) => b[1] - a[1]).slice(0, 10);
+                chart1Labels = sorted.map(([k]) => k);
+                chart1Data = sorted.map(([, v]) => v);
+                chart1Label = `${catCol} by ${numCol}`;
+                chart1Title.textContent = chart1Label;
+            } else if (numericCols.length > 0) {
+                const numCol = numericCols[0];
+                const values = data.map(row => parseFloat(row[numCol])).filter(v => !isNaN(v));
+                const bins = 10;
+                const min = Math.min(...values);
+                const max = Math.max(...values);
+                const binSize = (max - min) / bins;
+                const histogram = new Array(bins).fill(0);
+                values.forEach(v => {
+                    const bin = Math.min(Math.floor((v - min) / binSize), bins - 1);
+                    histogram[bin]++;
+                });
+                chart1Labels = Array.from({length: bins}, (_, i) => `${(min + i * binSize).toFixed(1)}-${(min + (i+1) * binSize).toFixed(1)}`);
+                chart1Data = histogram;
+                chart1Label = `Distribution of ${numCol}`;
+                chart1Title.textContent = chart1Label;
+            } else if (categoricalCols.length > 0) {
+                const catCol = categoricalCols[0];
+                const map = new Map();
+                data.forEach(row => {
+                    const key = String(row[catCol] || 'unknown').trim();
+                    map.set(key, (map.get(key) || 0) + 1);
+                });
+                const sorted = Array.from(map.entries()).sort((a, b) => b[1] - a[1]).slice(0, 10);
+                chart1Labels = sorted.map(([k]) => k);
+                chart1Data = sorted.map(([, v]) => v);
+                chart1Label = `Count of ${catCol}`;
+                chart1Title.textContent = chart1Label;
+            }
+
+            if (mainChart) mainChart.destroy();
+            const ctx1 = document.getElementById('mainChart').getContext('2d');
+            mainChart = new Chart(ctx1, {
+                type: 'bar',
+                data: {
+                    labels: chart1Labels.length > 0 ? chart1Labels : ['No Data'],
+                    datasets: [{
+                        label: chart1Label,
+                        data: chart1Data.length > 0 ? chart1Data : [0],
+                        backgroundColor: ['#2563eb', '#3b82f6', '#60a5fa', '#7c3aed', '#a78bfa', '#0891b2', '#06b6d4', '#059669', '#10b981', '#d97706'],
+                        borderRadius: 6,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { labels: { color: '#94a3b8' } } },
+                    scales: { y: { ticks: { color: '#94a3b8' } }, x: { ticks: { color: '#94a3b8', maxRotation: 45 } } }
+                }
+            });
+
+            let doughnutLabels = [], doughnutData = [];
+            if (categoricalCols.length > 0) {
+                const catCol = categoricalCols[0];
+                const map = new Map();
+                data.forEach(row => {
+                    const key = String(row[catCol] || 'unknown').trim();
+                    map.set(key, (map.get(key) || 0) + 1);
+                });
+                const sorted = Array.from(map.entries()).sort((a, b) => b[1] - a[1]).slice(0, 6);
+                doughnutLabels = sorted.map(([k]) => k);
+                doughnutData = sorted.map(([, v]) => v);
+                chart2Title.textContent = `Top ${catCol} Categories`;
+            } else if (numericCols.length > 0) {
+                const numCol = numericCols[0];
+                const values = data.map(row => parseFloat(row[numCol])).filter(v => !isNaN(v));
+                if (values.length > 0) {
+                    const sorted = values.sort((a, b) => a - b);
+                    const q1 = sorted[Math.floor(sorted.length * 0.25)];
+                    const q2 = sorted[Math.floor(sorted.length * 0.5)];
+                    const q3 = sorted[Math.floor(sorted.length * 0.75)];
+                    doughnutLabels = ['Low (0-25%)', 'Medium-Low (25-50%)', 'Medium (50-75%)', 'High (75-100%)'];
+                    doughnutData = [q1 || 0, q2 - q1 || 0, q3 - q2 || 0, sorted[sorted.length - 1] - q3 || 0];
+                    chart2Title.textContent = `Distribution of ${numCol}`;
+                }
+            }
+
+            if (doughnutChart) doughnutChart.destroy();
+            if (doughnutLabels.length > 0) {
+                const ctx2 = document.getElementById('doughnutChart').getContext('2d');
+                doughnutChart = new Chart(ctx2, {
+                    type: 'doughnut',
+                    data: {
+                        labels: doughnutLabels,
+                        datasets: [{
+                            data: doughnutData,
+                            backgroundColor: ['#2563eb', '#7c3aed', '#0891b2', '#059669', '#d97706', '#dc2626'],
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', boxWidth: 12, padding: 10 } } }
+                    }
+                });
+            }
+        }
+
+        function updateAnalytics(data, headersList, types) {
+            if (!data || data.length === 0) {
+                analyticsGrid.innerHTML = '';
+                return;
+            }
+
+            analyticsGrid.innerHTML = '';
+            const insights = [];
+            const numericCols = Object.keys(types).filter(k => types[k]?.type === 'numeric');
+            const categoricalCols = Object.keys(types).filter(k => types[k]?.type === 'categorical');
+
+            if (numericCols.length > 0) {
+                const col = numericCols[0];
+                const values = data.map(row => parseFloat(row[col])).filter(v => !isNaN(v));
+                if (values.length > 0) {
+                    const sum = values.reduce((a, b) => a + b, 0);
+                    const avg = (sum / values.length).toFixed(2);
+                    const max = Math.max(...values);
+                    const min = Math.min(...values);
+                    insights.push({ title: `📊 ${col}`, value: `Avg: ${avg}`, detail: `Max: ${max} | Min: ${min} | Count: ${values.length}` });
+                }
+            }
+
+            if (categoricalCols.length > 0) {
+                const col = categoricalCols[0];
+                const map = new Map();
+                data.forEach(row => {
+                    const key = String(row[col] || 'unknown').trim();
+                    map.set(key, (map.get(key) || 0) + 1);
+                });
+                const sorted = Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
+                if (sorted.length > 0) {
+                    const top = sorted[0];
+                    insights.push({ title: `🏷️ Top ${col}`, value: top[0], detail: `${top[1]} occurrences (${((top[1]/data.length)*100).toFixed(1)}%)` });
+                }
+            }
+
+            insights.push({ title: `📈 Total Records`, value: data.length, detail: `${headersList.length} columns detected` });
+
+            insights.slice(0, 4).forEach(insight => {
+                const card = document.createElement('div');
+                card.className = 'analytics-card';
+                card.innerHTML = `<h4>${insight.title}</h4><div class="value">${insight.value}</div><div style="font-size:0.8rem;color:#94a3b8;margin-top:0.3rem;">${insight.detail}</div>`;
+                analyticsGrid.appendChild(card);
+            });
+        }
+
+        function updatePagination(page, total) {
+            totalPages = total || 1;
+            pageInfo.textContent = `Page ${page} of ${totalPages}`;
+            prevPageBtn.disabled = page <= 1;
+            nextPageBtn.disabled = page >= totalPages;
+        }
+
+        function parseSearchQuery(query) {
+            const result = { original: query, type: 'text', column: null, operator: null, value: null, columns: [] };
+            
+            const columnMatch = query.match(/^(\w+):(.*)$/);
+            if (columnMatch) {
+                result.type = 'column';
+                result.column = columnMatch[1];
+                result.value = columnMatch[2].trim();
+                result.columns = [columnMatch[1]];
+                return result;
+            }
+
+            const compareMatch = query.match(/^([<>]=?)(\d+\.?\d*)$/);
+            if (compareMatch) {
+                result.type = 'numeric';
+                result.operator = compareMatch[1];
+                result.value = parseFloat(compareMatch[2]);
+                return result;
+            }
+
+            const rangeMatch = query.match(/between\s+(\d+\.?\d*)\s+and\s+(\d+\.?\d*)/i);
+            if (rangeMatch) {
+                result.type = 'range';
+                result.value = [parseFloat(rangeMatch[1]), parseFloat(rangeMatch[2])];
+                return result;
+            }
+
+            const containsMatch = query.match(/contains\s+['"](.*)['"]/i);
+            if (containsMatch) {
+                result.type = 'contains';
+                result.value = containsMatch[1];
+                return result;
+            }
+
+            result.type = 'text';
+            result.value = query;
+            return result;
+        }
+
+        function showSearchInfo(show) {
+            searchInfo.style.display = show ? 'block' : 'none';
+        }
+
+        function performSearch() {
+            const term = searchInput.value.trim();
+            if (!term) {
+                showSearchInfo(false);
+                loadDataFromAPI('', 1);
+                return;
+            }
+
+            const parsedQuery = parseSearchQuery(term);
+            let displayText = '';
+            let typeText = '';
+
+            switch(parsedQuery.type) {
+                case 'column':
+                    displayText = `🔍 Searching in column "${parsedQuery.column}" for "${parsedQuery.value}"`;
+                    typeText = 'Column Search';
+                    break;
+                case 'numeric':
+                    displayText = `🔍 Finding values ${parsedQuery.operator} ${parsedQuery.value}`;
+                    typeText = 'Numeric Filter';
+                    break;
+                case 'range':
+                    displayText = `🔍 Values between ${parsedQuery.value[0]} and ${parsedQuery.value[1]}`;
+                    typeText = 'Range Search';
+                    break;
+                case 'contains':
+                    displayText = `🔍 Containing "${parsedQuery.value}"`;
+                    typeText = 'Text Contains';
+                    break;
+                default:
+                    displayText = `🔍 Searching for "${parsedQuery.value}"`;
+                    typeText = 'Text Search';
+            }
+
+            searchQueryDisplay.textContent = displayText;
+            searchTypeBadge.textContent = typeText;
+            
+            let columnsText = '';
+            if (parsedQuery.columns && parsedQuery.columns.length > 0) {
+                columnsText = `📊 Searching in: ${parsedQuery.columns.join(', ')}`;
+            } else if (headers.length > 0) {
+                const shownColumns = headers.slice(0, 5).join(', ');
+                columnsText = `📊 Searching all ${headers.length} columns${headers.length > 5 ? ` (${shownColumns}...)` : ''}`;
+            }
+            searchColumnsUsed.textContent = columnsText;
+
+            showSearchInfo(true);
+            showToast(`🔍 Searching: "${term}"`);
+            loadDataFromAPI(term, 1);
+        }
+
+        // Clean Data
+        document.getElementById('cleanDataBtn')?.addEventListener('click', function() {
+            document.getElementById('cleanPanel').style.display = 'block';
+        });
+
+        document.getElementById('applyCleanBtn')?.addEventListener('click', function() {
+            const options = {
+                removeDuplicates: document.getElementById('removeDuplicates').checked,
+                removeEmpty: document.getElementById('removeEmpty').checked,
+                fillMissing: document.getElementById('fillMissing').checked,
+                removeOutliers: document.getElementById('removeOutliers').checked
+            };
+            
+            fetch('/api/clean', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ options: options })
+            })
+            .then(res => res.json())
+            .then(result => {
+                if (result.success) {
+                    showToast('Data cleaned successfully!');
+                    document.getElementById('cleanPanel').style.display = 'none';
+                    loadDataFromAPI('', 1);
+                }
+            })
+            .catch(err => showToast('Error cleaning data: ' + err.message));
+        });
+
+        // EDA Analysis
+        document.getElementById('edaBtn')?.addEventListener('click', function() {
+            fetch('/api/eda')
+                .then(res => res.json())
+                .then(result => {
+                    if (result.success) {
+                        const panel = document.getElementById('edaPanel');
+                        panel.style.display = 'block';
+                        const content = document.getElementById('edaContent');
+                        let html = '';
+                        
+                        html += '<h4>📊 Summary Statistics</h4><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;">';
+                        Object.keys(result.eda.summary).forEach(col => {
+                            const stats = result.eda.summary[col];
+                            html += `<div style="background:#0d1117;padding:0.5rem;border-radius:0.5rem;">
+                                <strong>${col}</strong><br>
+                                Mean: ${stats.mean.toFixed(2)}<br>
+                                Median: ${stats.median.toFixed(2)}<br>
+                                Min: ${stats.min} | Max: ${stats.max}<br>
+                                Std: ${stats.std.toFixed(2)}
+                            </div>`;
+                        });
+                        html += '</div>';
+                        
+                        if (Object.keys(result.eda.correlations).length > 0) {
+                            html += '<h4 style="margin-top:1rem;">🔗 Correlations</h4>';
+                            Object.keys(result.eda.correlations).forEach(key => {
+                                const val = result.eda.correlations[key];
+                                html += `<div style="background:#0d1117;padding:0.5rem;border-radius:0.5rem;margin:0.2rem 0;">
+                                    ${key}: <strong style="color:${Math.abs(val) > 0.7 ? '#4ade80' : '#fbbf24'}">${val.toFixed(3)}</strong>
+                                    ${Math.abs(val) > 0.7 ? ' 🔥 Strong correlation' : ''}
+                                </div>`;
+                            });
+                        }
+                        
+                        if (result.eda.anomalies.length > 0) {
+                            html += '<h4 style="margin-top:1rem;">⚠️ Anomalies Detected</h4>';
+                            result.eda.anomalies.slice(0, 10).forEach(anom => {
+                                html += `<div style="background:#0d1117;padding:0.5rem;border-radius:0.5rem;margin:0.2rem 0;color:#fbbf24;">
+                                    Row ${anom.row}: ${anom.column} = ${anom.value} (deviation: ${anom.deviation.toFixed(2)})
+                                </div>`;
+                            });
+                        }
+                        
+                        content.innerHTML = html;
+                    }
+                })
+                .catch(err => showToast('Error performing EDA: ' + err.message));
+        });
+
+        // AI Insights
+        document.getElementById('aiInsightsBtn')?.addEventListener('click', function() {
+            fetch('/api/ai/insights')
+                .then(res => res.json())
+                .then(result => {
+                    if (result.success) {
+                        const panel = document.getElementById('aiPanel');
+                        panel.style.display = 'block';
+                        const content = document.getElementById('aiContent');
+                        let html = '';
+                        
+                        html += '<div style="background:#0d1117;padding:1rem;border-radius:0.5rem;margin-bottom:1rem;">';
+                        result.insights.summary.forEach(item => {
+                            html += `<div>🤖 ${item}</div>`;
+                        });
+                        html += '</div>';
+                        
+                        if (result.insights.patterns.length > 0) {
+                            html += '<h4>📈 Patterns Detected</h4>';
+                            result.insights.patterns.forEach(pattern => {
+                                html += `<div style="background:#0d1117;padding:0.5rem;border-radius:0.5rem;margin:0.2rem 0;">${pattern}</div>`;
+                            });
+                        }
+                        
+                        if (result.insights.recommendations.length > 0) {
+                            html += '<h4 style="margin-top:1rem;">💡 Recommendations</h4>';
+                            result.insights.recommendations.forEach(rec => {
+                                html += `<div style="background:#0d1117;padding:0.5rem;border-radius:0.5rem;margin:0.2rem 0;color:#60a5fa;">${rec}</div>`;
+                            });
+                        }
+                        
+                        if (result.insights.anomalies.length > 0) {
+                            html += '<h4 style="margin-top:1rem;">⚠️ Anomalies</h4>';
+                            result.insights.anomalies.forEach(anom => {
+                                html += `<div style="background:#0d1117;padding:0.5rem;border-radius:0.5rem;margin:0.2rem 0;color:#fbbf24;">${anom}</div>`;
+                            });
+                        }
+                        
+                        content.innerHTML = html;
+                    }
+                })
+                .catch(err => showToast('Error getting AI insights: ' + err.message));
+        });
+
+        // Export Excel
+        document.getElementById('exportExcelBtn')?.addEventListener('click', function() {
+            window.location.href = '/api/export/excel';
+            showToast('Exporting Excel file...');
+        });
+
+        // Export PDF
+        document.getElementById('exportPDFBtn')?.addEventListener('click', function() {
+            window.location.href = '/api/export/pdf';
+            showToast('Generating PDF report...');
+        });
+
+        // Zoom Controls
+        document.getElementById('zoomInBtn')?.addEventListener('click', function() {
+            zoomLevel += 0.1;
+            document.querySelector('.app-wrapper').style.transform = `scale(${zoomLevel})`;
+            document.querySelector('.app-wrapper').style.transformOrigin = 'top left';
+            showToast(`Zoom: ${(zoomLevel * 100).toFixed(0)}%`);
+        });
+
+        document.getElementById('zoomOutBtn')?.addEventListener('click', function() {
+            if (zoomLevel > 0.5) {
+                zoomLevel -= 0.1;
+                document.querySelector('.app-wrapper').style.transform = `scale(${zoomLevel})`;
+                document.querySelector('.app-wrapper').style.transformOrigin = 'top left';
+                showToast(`Zoom: ${(zoomLevel * 100).toFixed(0)}%`);
+            }
+        });
+
+        document.getElementById('zoomResetBtn')?.addEventListener('click', function() {
+            zoomLevel = 1;
+            document.querySelector('.app-wrapper').style.transform = 'scale(1)';
+            showToast('Zoom reset to 100%');
+        });
+
+        // Screenshot
+        document.getElementById('screenshotBtn')?.addEventListener('click', function() {
+            showToast('📸 Screenshot feature coming soon!');
+        });
+
+        // Search Suggestions
+        searchInput?.addEventListener('focus', function() {
+            if (this.value.trim() === '' && headers.length > 0) {
+                searchSuggestions.style.display = 'block';
+                searchSuggestions.innerHTML = `
+                    <div style="padding:0.5rem 1rem; color:#94a3b8; font-size:0.8rem;"><i class="fas fa-lightbulb"></i> Search Tips:</div>
+                    <div onclick="document.getElementById('searchInput').value='column:value'; performSearch();"><code>column:value</code> - Search specific column</div>
+                    <div onclick="document.getElementById('searchInput').value='>100'; performSearch();"><code>&gt;100</code> - Greater than 100</div>
+                    <div onclick="document.getElementById('searchInput').value='<50'; performSearch();"><code>&lt;50</code> - Less than 50</div>
+                    <div onclick="document.getElementById('searchInput').value='between 100 and 200'; performSearch();"><code>between 100 and 200</code> - Range search</div>
+                    <div onclick="document.getElementById('searchInput').value='contains \'text\''; performSearch();"><code>contains 'text'</code> - Text contains</div>
+                `;
+            }
+        });
+
+        searchInput?.addEventListener('input', function() {
+            const value = this.value.trim().toLowerCase();
+            if (value.length > 1 && headers.length > 0) {
+                const suggestions = [];
+                filteredData.slice(0, 50).forEach(row => {
+                    headers.forEach(h => {
+                        const cellValue = String(row[h] || '').toLowerCase();
+                        if (cellValue.includes(value) && !suggestions.includes(cellValue)) {
+                            suggestions.push(cellValue);
+                        }
+                    });
+                });
+                
+                if (suggestions.length > 0) {
+                    searchSuggestions.style.display = 'block';
+                    searchSuggestions.innerHTML = suggestions.slice(0, 10).map(s => 
+                        `<div onclick="document.getElementById('searchInput').value='${s}'; performSearch();">🔍 ${s}</div>`
+                    ).join('');
+                } else {
+                    searchSuggestions.style.display = 'none';
+                }
+            } else if (value.length === 0) {
+                searchSuggestions.style.display = 'block';
+            }
+        });
+
+        searchInput?.addEventListener('blur', function() {
+            setTimeout(() => {
+                searchSuggestions.style.display = 'none';
+            }, 200);
+        });
+
+        function deleteSelectedRows() {
+            const checkboxes = document.querySelectorAll('.rowCheckbox:checked');
+            if (checkboxes.length === 0) { showToast('Select rows to delete'); return; }
+            
+            const ids = Array.from(checkboxes).map(cb => {
+                const idx = parseInt(cb.dataset.idx);
+                return filteredData[idx]?.id;
+            }).filter(id => id);
+            
+            if (ids.length === 0) { showToast('No valid rows selected'); return; }
+            
+            fetch('/api/data', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ids })
+            })
+            .then(res => res.json())
+            .then(result => {
+                if (result.success) {
+                    showToast(result.message);
+                    loadDataFromAPI(searchInput.value.trim(), currentPage);
+                } else {
+                    showToast('Error: ' + (result.error || 'Delete failed'));
+                }
+            })
+            .catch(err => showToast('Error: ' + err.message));
+        }
+
+        function exportData() {
+            if (filteredData.length === 0) { showToast('No data to export'); return; }
+            
+            const headers = Object.keys(filteredData[0]).filter(h => h !== 'id' && h !== '_index');
+            let csv = headers.join(',') + '\n';
+            filteredData.forEach(row => {
+                csv += headers.map(h => `"${(row[h] || '').toString().replace(/"/g, '""')}"`).join(',') + '\n';
+            });
+            
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `exported_data_${Date.now()}.csv`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+            showToast('Data exported successfully!');
+        }
+
+        // Event Listeners
+        fileInput.addEventListener('change', function(e) {
+            if (this.files && this.files[0]) {
+                const formData = new FormData();
+                formData.append('file', this.files[0]);
+                
+                fetch('/api/upload', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(res => res.json())
+                .then(result => {
+                    if (result.success) {
+                        rawData = result.data;
+                        headers = result.headers || [];
+                        columnTypes = result.columnTypes || {};
+                        dataSummary = result.summary || {};
+                        showToast(result.message);
+                        loadDataFromAPI('', 1);
+                    } else {
+                        showToast('Error: ' + (result.error || 'Upload failed'));
+                    }
+                })
+                .catch(err => showToast('Error uploading: ' + err.message));
+            }
+            this.value = '';
+        });
+
+        resetBtn.addEventListener('click', function() {
+            fetch('/api/reset', { method: 'DELETE' })
+                .then(res => res.json())
+                .then(result => {
+                    if (result.success) {
+                        rawData = [];
+                        filteredData = [];
+                        headers = [];
+                        columnTypes = {};
+                        dataSummary = {};
+                        totalRecords.textContent = '0';
+                        colCount.textContent = '0';
+                        datasetType.textContent = '—';
+                        catCount.textContent = '0';
+                        numCount.textContent = '0';
+                        recordCount.textContent = '0 records';
+                        tableHead.innerHTML = '';
+                        tableBody.innerHTML = `<tr><td colspan="10" class="empty-state"><i class="fas fa-cloud-upload-alt"></i><br />Upload any CSV or Excel dataset to begin</td></tr>`;
+                        if (mainChart) { mainChart.destroy(); mainChart = null; }
+                        if (doughnutChart) { doughnutChart.destroy(); doughnutChart = null; }
+                        analyticsGrid.innerHTML = '';
+                        showSearchInfo(false);
+                        document.getElementById('edaPanel').style.display = 'none';
+                        document.getElementById('aiPanel').style.display = 'none';
+                        document.getElementById('cleanPanel').style.display = 'none';
+                        showToast('Data reset complete');
+                    }
+                })
+                .catch(err => showToast('Error resetting: ' + err.message));
+        });
+
+        searchBtn.addEventListener('click', performSearch);
+        searchInput.addEventListener('keyup', function(e) { if (e.key === 'Enter') performSearch(); });
+        
+        clearFilterBtn.addEventListener('click', function() {
+            searchInput.value = '';
+            showSearchInfo(false);
+            loadDataFromAPI('', 1);
+        });
+        
+        deleteSelectedBtn.addEventListener('click', deleteSelectedRows);
+        exportBtn.addEventListener('click', exportData);
+        
+        prevPageBtn.addEventListener('click', function() {
+            if (currentPage > 1) {
+                loadDataFromAPI(searchInput.value.trim(), currentPage - 1);
+            }
+        });
+        
+        nextPageBtn.addEventListener('click', function() {
+            if (currentPage < totalPages) {
+                loadDataFromAPI(searchInput.value.trim(), currentPage + 1);
+            }
+        });
+
+        document.addEventListener('keydown', function(e) {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+                e.preventDefault();
+                searchInput.focus();
+            }
+        });
+
+        showToast('🚀 Upload any CSV or Excel dataset to start exploring!');
+    })();
+</script>
+</body>
+</html>
